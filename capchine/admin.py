@@ -11,8 +11,9 @@ class RoleAdmin(admin.ModelAdmin):
 admin.site.register(Role,RoleAdmin)
 
 class TeacherAdmin(admin.ModelAdmin):
-    list_display = ('u','search_count','rating_count','search_code_used','created')
+    list_display = ('u','search_count','rating_count','search_code_used','search_code_usage_time','created')
     ordering = ['-search_count',]
+
 admin.site.register(Teacher, TeacherAdmin)
 
 class Search_CodeAdmin(admin.ModelAdmin):

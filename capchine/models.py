@@ -60,6 +60,18 @@ class Teacher(models.Model):
     def search_code_used(self):
         s = Search_Code.objects.filter(accessed_by=self.u)
         return len(s)
+    def search_code_usage_time(self):
+        s = Search_Code.objects.filter(accessed_by=self.u)
+        usage_time = ''
+        for t in s:
+            b = str(t.accessed_date.time())
+            b = b.split('.')
+            b = b[0]
+            usage_time =  usage_time + b + ' '
+        usage_time = '[' + usage_time + ']'
+        return usage_time  
+
+
 
 
 class Search_Code(models.Model):

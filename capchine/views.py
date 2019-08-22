@@ -295,6 +295,7 @@ def search_student(request):
             t.search_count = s_count
             t.save()
             sc.accessed_by = request.user
+            sc.accessed_date = timezone.now()
             sc.save()
 
         return render(request,'account/student_profile.html',{'role':role, 'attnt':attnt,'prfrm':prfrm,'punct':punct,'coop':coop,
