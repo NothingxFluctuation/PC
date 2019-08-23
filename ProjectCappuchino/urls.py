@@ -36,6 +36,8 @@ urlpatterns = [
 	path('edit/',cv.edit, name="edit"),
 	re_path(r'^activate/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,20})/$', cv.activate_account, name='activate'),
     
+
+	path('admin_student/',cv.admin_student_code,name='admin_student'),
 	
 	
 	path('password_change/', auth_views.PasswordChangeView.as_view(), name="password_change"),

@@ -28,27 +28,6 @@
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarResponsive">
-        <ul class="navbar-nav ml-auto">
-          <li class="nav-item">
-            <a class="nav-link" href="about.html">About</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{% url 'edit' %}">Edit Profile</a>
-          </li>
-          {% ifequal role "Teacher" %}
-          <li class="nav-item">
-            <a class="nav-link" href="{% url 'search' %}">Search</a>
-          </li>
-          {% endifequal %}
-          <li class="nav-item">
-              {% if request.user.is_authenticated %}
-              <a class="nav-link" href="{% url 'logout' %}">Logout</a>
-              {% else %}
-              <a class="nav-link" href="{% url 'login' %}">Login</a>
-              {% endif %}
-          </li>
-          
-        </ul>
       </div>
     </div>
   </nav>
@@ -63,12 +42,14 @@
       <li class="breadcrumb-item">
         <a href="/">Home</a>
       </li>
-      <li class="breadcrumb-item active">Password Change Success</li>
+      <li class="breadcrumb-item active">{{code}}</li>
     </ol>
     <div class="jumbotron">
-      <h1 class="display-1">Password Changed</h1>
-      <p>Your password has been successfully changed. Please keep your password secret and don't tell anybody about it.</p>
-      
+      <p><b>Teachers who accessed this code:</b></p>
+      <br>
+      {% for t in tchrz %}
+      <p>{{t}}</p>
+      {% endfor %}
     </div>
     <!-- /.jumbotron -->
 

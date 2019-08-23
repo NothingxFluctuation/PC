@@ -25,7 +25,7 @@ class RegistrationForm(forms.ModelForm):
 class EditForm(forms.ModelForm):
     class Meta:
         model = User
-        fields = ('username','first_name','last_name','email')
+        fields = ('first_name','last_name','email')
 
 RATING_CHOICES = [(1,'*'),(2,'**'),(3,'***'),(4,'****'),(5,'*****')]
 

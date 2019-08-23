@@ -8,8 +8,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
   <meta name="description" content="">
   <meta name="author" content="">
-
-  <title>Modern Business - Start Bootstrap Template</title>
+  <title>Project Cappuchino</title>
 
   <!-- Bootstrap core CSS -->
   <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
@@ -34,13 +33,20 @@
             <a class="nav-link" href="about.html">About</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="services.html">Services</a>
-          </li>
+              <a class="nav-link" href="{% url 'edit' %}">Edit Profile</a>
+            </li>
+          {% ifequal role "Teacher" %}
           <li class="nav-item">
-            <a class="nav-link" href="contact.html">Contact</a>
+            <a class="nav-link" href="{% url 'search' %}">Search</a>
           </li>
+          {% endifequal %}
+          
           <li class="nav-item">
-              <a class="nav-link" href="#">Login</a>
+              {% if request.user.is_authenticated %}
+              <a class="nav-link" href="{% url 'logout' %}">Logout</a>
+              {% else %}
+              <a class="nav-link" href="{% url 'login' %}">Login</a>
+              {% endif %}
           </li>
           
         </ul>
@@ -104,7 +110,83 @@
         </div>
     </div>
 
+    <hr>
 
+    <h3 style = color:blue> <b>Ratings</b></h3>
+    <hr>
+    
+    {% for r in rating_profiles %}
+    {% if r.u.is_active %}
+        <div class="card mb-4">
+          <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                  <label>Attention</label>
+                </div>
+                <div class="col-md-6">
+                  <p>{{r.attention}}</p>
+                </div>   
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <label>Performance</label>
+              </div>
+              <div class="col-md-6">
+                <p>{{r.performance}}</p>
+              </div>   
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <label>Punctuality</label>
+            </div>
+            <div class="col-md-6">
+              <p>{{r.punctuality}}</p>
+            </div>   
+        </div>
+        <div class="row">
+          <div class="col-md-6">
+            <label>Cooperation</label>
+          </div>
+          <div class="col-md-6">
+            <p>{{r.cooperation}}</p>
+          </div>   
+      </div>
+          </div>
+          <div class="card-footer text-muted">
+            Rated on {{r.rated}} by {{r.teacher}} with code {{r.code}}
+          </div>
+        </div>
+      {% endif %}
+    
+{% empty %}
+
+<p>No ratings yet.</p>
+    {% endfor %}
+<hr>
+
+<h3 style = color:blue> <b>Searched Students</b></h3>
+
+<div class="card mb-4">
+    <div class="card-body">
+      {% for s in searched_students %}
+      {% if s.u.is_active %}
+      <div class="row">
+          <div class="col-md-6">
+            <label>{{s.u}}</label>
+          </div>
+          <div class="col-md-6">
+            <p>{{s.accessed_date}}</p>
+          </div> 
+      </div>
+      {% endif %}
+      {% empty %} 
+      <p>No searched students yet.</p>  
+      {% endfor %}
+</div>
+    </div>
+  </div>
+<hr>
+    
 
 
 
