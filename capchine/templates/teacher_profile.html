@@ -116,7 +116,7 @@
     <hr>
     
     {% for r in rating_profiles %}
-    {% if r.u.is_active %}
+    {% if r.code.u.is_active %}
         <div class="card mb-4">
           <div class="card-body">
             <div class="row">
@@ -153,7 +153,7 @@
       </div>
           </div>
           <div class="card-footer text-muted">
-            Rated on {{r.rated}} by {{r.teacher}} with code {{r.code}}
+            Rated {{r.code.u.get_full_name}} on {{r.created}} by {{r.teacher}} with code {{r.code}}
           </div>
         </div>
       {% endif %}
@@ -169,13 +169,13 @@
 <div class="card mb-4">
     <div class="card-body">
       {% for s in searched_students %}
-      {% if s.u.is_active %}
+      {% if s.code.u.is_active %}
       <div class="row">
           <div class="col-md-6">
-            <label>{{s.u}}</label>
+            <label>{{s.code.u}} [code: {{s.code}}]</label>
           </div>
           <div class="col-md-6">
-            <p>{{s.accessed_date}}</p>
+            <p>{{s.created}}</p>
           </div> 
       </div>
       {% endif %}

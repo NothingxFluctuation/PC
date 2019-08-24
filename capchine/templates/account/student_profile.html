@@ -76,7 +76,7 @@
                                 <label>Role</label>
                             </div>
                             <div class="col-md-6">
-                                <p>{{role}}</p>
+                                <p>Student</p>
                             </div>
                         </div>
                         <div class="row">
@@ -175,9 +175,11 @@
   </div>
       </div>
       <div class="card-footer text-muted">
-        Rated on {{r.rated}} by {{r.teacher}} with code {{r.code}}
+        Rated on {{r.created}} by {{r.teacher}} with code {{r}}
       </div>
     </div>
+  {% empty %}
+  <p>No ratings to show yet.</p>
 
 {% endfor %}
 

@@ -11,7 +11,7 @@ from .token import account_activation_token
 from django.core.mail import EmailMessage
 from django.utils.encoding import force_bytes, force_text
 from django.contrib.auth.models import User
-from .models import Student, Teacher, Search_Code, Rating, Role
+from .models import Student, Teacher, Search, SearchCode, Rating, Role, RatingCode
 import random, string
 import datetime
 from django.utils import timezone
@@ -114,40 +114,42 @@ def activate_account(request, uidb64, token):
         return HttpResponse('Activation link is invalid!')
 
 
-
 @login_required
 def student_dashboard(request):
-    role = 'Student'
-    ratings = Rating.objects.filter(u = request.user, active = True).order_by('-rated')
-    sc = Search_Code.objects.filter(u__id = request.user.id).order_by('-created')
-    if len(sc)>0:
-        sc = sc[0]
-    rc = Rating.objects.filter(u__id = request.user.id).order_by('-created')
+    role = "Student"
+    rating_codes = RatingCode.objects.filter(u = request.user)
+    ratings = Rating.objects.filter(code__in = rating_codes.all())
+    rc = RatingCode.objects.filter(u = request.user).order_by('-created')
     if len(rc)>0:
         rc = rc[0]
+
+    sc = SearchCode.objects.filter(u = request.user).order_by('-created')
+    if len(sc)>0:
+        sc = sc[0]
+
+        
     attnt = 0
     prfrm = 0
     punct = 0
     coop = 0
     count = 0
-    print('Ratings: ',ratings)
     for r in ratings:
         if r.attention:
             attnt += r.attention
             prfrm += r.performance
             punct += r.punctuality
             coop += r.cooperation
-            count +=1
+            count +=1 
+            
     if count>0:
-        attnt = attnt/ count 
+        attnt = attnt/ count
         prfrm = prfrm/ count
         punct = punct/ count
-        coop = coop / count
+        coop = coop/ count
+    return render(request, 'newbase.html',{'role':role,'attnt':attnt,'prfrm':prfrm,'punct':punct,'coop':coop, 'ratings':ratings,'sc':sc,'rc':rc})
 
-    
+            
 
-    return render(request, 'newbase.html',{'role':role, 'attnt':attnt,'prfrm':prfrm,'punct':punct,'coop':coop,
-    'ratings':ratings,'sc':sc,'rc':rc})
 
 
 
@@ -156,24 +158,21 @@ def teacher_dashboard(request):
     cd = None
     rating = False
     role = 'Teacher'
-    tchr = Teacher.objects.filter(u__id=request.user.id)
-    if tchr != []:
-        print('Teacher:',tchr)
-        if len(tchr)>0:
-            if tchr[0].search_count == None:
-                search_count = 0 
-            else:
-                search_count = tchr[0].search_count
-        else:
+    rol = request.user.roly.my_role
+    if rol == 'teacher':
+        t = Teacher.objects.get(u = request.user)
+        if t.search_count == None:
             search_count = 0
-
-    rating_profiles = request.user.given_rating.filter(active=True).order_by('-rated')
-    searched_students = request.user.accessed_code.filter(accessed_date__lte= datetime.datetime.today(), accessed_date__gt=datetime.datetime.today() - datetime.timedelta(days=30)).order_by('-accessed_date')
-
-
-    return render(request,'teacher_profile.html',{'role':role,'search_count':search_count,'cd':cd,'rating':rating,
-     'rating_profiles':rating_profiles,'searched_students':searched_students}) 
-
+        else:
+            search_count = t.search_count
+    else:
+        return redirect('/')
+    rating_profiles = request.user.given_rating.filter(active=True).order_by('-created') 
+    print('Rating Profiles: ',rating_profiles)
+    searched_students = request.user.accessed_code.filter(created__lte= datetime.datetime.today(), created__gt=datetime.datetime.today() - datetime.timedelta(days=30)).order_by('-created')    
+    return render(request, 'teacher_profile.html',{'role':role,'search_count':search_count,'cd':cd,'rating':rating,'rating_profiles':rating_profiles,'searched_students':searched_students})
+	
+	
 
 @login_required
 def dashboard(request):
@@ -209,11 +208,13 @@ from django.core.mail import send_mail
 
 @login_required
 def create_code(request):
+    if request.user.roly.my_role != 'student':
+        return redirect('/')
     random_code = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(15))
     r = False
     if request.GET.get('rating') =='Yes':
         r = True
-    srch_code = Search_Code.objects.create(u= request.user, code = random_code)
+    srch_code = SearchCode.objects.create(u= request.user, code = random_code)
     subject = 'New Search Code Created'
     message = "Dear {}, \n\nYou have successfully created a new search code. Your new search code is: {}.".format(request.user.get_full_name(),srch_code.code)
     mail_sent = send_mail(subject, message, 'admin@project.com',[request.user.email])
@@ -223,8 +224,10 @@ def create_code(request):
 
 @login_required
 def rating_code(request):
+    if request.user.roly.my_role != 'student':
+        return redirect('/')
     random_code = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(15))
-    rating_code = Rating.objects.create(u = request.user, code=random_code) 
+    rating_code = RatingCode.objects.create(u = request.user, code=random_code) 
     subject = "New Rating Code Created"
     message = "Dear {}, \n\nYou have successfully created a new rating code. Your new rating code is: {}.".format(request.user.get_full_name(), rating_code.code)
     mail_sent = send_mail(subject, message, 'admin@project.com',[request.user.email])
@@ -233,38 +236,43 @@ def rating_code(request):
 
 @login_required
 def search(request):
+    if request.user.roly.my_role != 'teacher':
+        return redirect('/')
     return render(request,'search.html')
+
+
 
 
 @login_required
 def search_student(request):
-    if request.user.roly.my_role =='teacher':
-        role = 'Student'
-        
-        s = request.GET.get('code')
-        rtng = False
-        rate_code = Rating.objects.filter(code = s)
-        print(rate_code)
-        print('Length: ',len(rate_code))
-        edt_rating = False
-        if len(rate_code)>0:
-            rc = ''
-            rtng = True
-            print('Rating',rtng)
-            r = get_object_or_404(Rating, code = s)
+    if request.user.roly.my_role !='teacher':
+	    return redirect('/')
+    s = request.GET.get('code')
+    rtng = False
+    rate_code = RatingCode.objects.filter(code = s)
+    edt_rating = False
+    if len(rate_code)>0:
+        rc = ''
+        rtng = True
+        r = get_object_or_404(RatingCode, code = s)
+        stdnt = r.u
+        name = r.u.get_full_name()
+        rgstrd = r.u.date_joined
+        attnt = 0
+        prfrm = 0
+        punct = 0
+        coop = 0
+        count = 0
+        ratings = []
+        rooting = Rating.objects.filter(code = r)
+        if len(rooting)>0:
             if not r.u.is_active:
                 return HttpResponse("That student is banned.")
-            if r.teacher == request.user:
+            rooting = Rating.objects.filter(code = r)
+            tchr_in = rooting.filter(teacher = request.user)
+            if len(tchr_in) > 0:
                 edt_rating = True
-            stdnt = r.u
-            name = r.u.get_full_name()
-            rgstrd = r.u.date_joined
-            attnt = 0
-            prfrm = 0
-            punct = 0
-            coop = 0
-            count = 0
-            ratings = Rating.objects.filter(u = r.u)
+            ratings = rooting
             for r in ratings:
                 if r.attention:
                     attnt += r.attention
@@ -273,108 +281,68 @@ def search_student(request):
                     coop += r.cooperation
                     count +=1
             if count>0:
-                attnt = attnt/ count 
-                prfrm = prfrm/ count
-                punct = punct/ count
-                coop = coop / count
-        else:
+                attnt = attnt/count 
+                prfrm = prfrm/count
+                punct = punct/count
+                coop = coop/count
 
-            sc = get_object_or_404(Search_Code, code = s)
-            now = timezone.now()
-            diff = now - sc.created
-            seconds = diff.seconds
-            hours = seconds/60/60
-            print("hours:", hours)
-            if hours > 240.0:
-                sc.active = False
-                return HttpResponse("The code has been expired.")
-        
-            ratings = Rating.objects.filter(u = sc.u, active = True)
-            stdnt = sc.u
-            name = sc.u.get_full_name()
-            rgstrd = sc.u.date_joined
-            rc = Rating.objects.filter(u__id = stdnt.id).order_by('-created')[0]
-            attnt = 0
-            prfrm = 0
-            punct = 0
-            coop = 0
-            count = 0
-            print('Ratings: ',ratings)
-            for r in ratings:
-                if r.attention:
-                    attnt += r.attention
-                    prfrm += r.performance
-                    punct += r.punctuality
-                    coop += r.cooperation
-                    count +=1
-            if count>0:
-                attnt = attnt/ count 
-                prfrm = prfrm/ count
-                punct = punct/ count
-                coop = coop / count
-            t = Teacher.objects.get(u = request.user)
-            s_count = t.search_count
-            if s_count ==None:
-                s_count = 0
-            s_count +=1
-            t.search_count = s_count
-            t.save()
-            sc.accessed_by.add(request.user)
-            sc.accessed_date = timezone.now()
-            
-            sc.save()
-
-        return render(request,'account/student_profile.html',{'role':role, 'attnt':attnt,'prfrm':prfrm,'punct':punct,'coop':coop,
-    'ratings':ratings,'rc':rc,'name':name,'rgstrd':rgstrd,'rtng':rtng,'stdnt':stdnt,'s':s,'edt_rating':edt_rating})
-
-
-@login_required
-def ssearch_student(request):
-    sc = 0
-    std = 0
-    ratings = []
-    if request.user.roly.my_role =='teacher':
-        s = request.GET.get('code')
-        print(request.GET)
-        
-        sc = get_object_or_404(Search_Code, code=s)
-        
+    else:
+        sc = get_object_or_404(SearchCode, code = s)
         now = timezone.now()
         diff = now - sc.created
         seconds = diff.seconds
         hours = seconds/60/60
-        print("Hours:", hours)
-        if hours > 240.0:
-            messages.error(request,'Code has been expired')
-            return redirect('teacher_dashboard')
-        
-
-        
-                                                                                                 
-        #sc = Search_Code.objects.get(code=s)
-        print('Code User: ',sc.u)
-        std = sc.u
+        if hours >240.0:
+            sc.active = False
+            return HttpResponse("The code has been expired.")
+        ratings = RatingCode.objects.filter(u = sc.u)
+        ratings = Rating.objects.filter(code__in = ratings)
+        stdnt = sc.u
+        name = sc.u.get_full_name()
+        rgstrd = sc.u.date_joined
+        rc = ratings.order_by('-created')
+        if len(rc)>0:
+            rc = rc[0]
+        attnt = 0
+        prfrm = 0
+        punct = 0
+        coop = 0
+        count = 0
+        for r in ratings:
+            if r.attention:
+                attnt+= r.attention
+                prfrm += r.performance
+                punct += r.punctuality
+                coop += r.cooperation
+                count +=1
+        if count> 0:
+            attnt = attnt/count
+            prfrm = prfrm/count
+            punct = punct/count
+            coop = coop/ count
         t = Teacher.objects.get(u = request.user)
         s_count = t.search_count
-        if s_count ==None:
+        if s_count == None:
             s_count = 0
         s_count +=1
         t.search_count = s_count
         t.save()
+        ss = Search.objects.create(code = sc, accessed_by = request.user)
+    role = 'Teacher'
+    return render(request,'account/student_profile.html',{'role':role,'attnt':attnt,
+    'prfrm':prfrm,'punct':punct,'coop':coop,'ratings':ratings,'rc':rc,'name':name,
+    'rgstrd':rgstrd,'rtng':rtng,'stdnt':stdnt,'s':s,'edt_rating':edt_rating})
 
-        student = Student.objects.get(u = sc.u)
-        ca_count = student.code_count
-        print("CA count", ca_count)
-        if ca_count == None:
-            ca_count = 0
-        ca_count +=1
-        student.code_count = ca_count
-        student.save()
-        sc.accessed_by.add(request.user)
 
-        ratings = Rating.objects.filter(u = sc.u, active=True).order_by('-created')[:5]
-        
-    return render(request,'account/student_profile.html',{'sc':sc,'std':std,'ratings':ratings})
+
+
+
+
+
+
+
+
+
 
 
 
@@ -394,32 +362,41 @@ def student_rating(request):
 
         print('CustId: ',custId,'attnt: ',attnt,'prfrm: ',prfrm,'punct: ',punct,'coop: ',coop)
         u = get_object_or_404(User, username = custId)
-        dt = str(date.today())
-        rt = get_object_or_404(Rating,u = u, code=code)
-        if rt.teacher:
-            if rt.teacher != request.user:
-                return redirect('teacher_dashboard')
-        #if rt.teacher == request.user:
-          #  rt.rating = rating
-           # rt.attention = attnt
-            #rt.performance
-            #return HttpResponse("You cannot use this rating code once again.")
-        rt.teacher = request.user
-        rt.rating = rating
-        rt.attention = attnt
-        rt.performance = prfrm
-        rt.punctuality = punct
-        rt.cooperation = coop
-        rt.rated = dt 
-        rt.save()
-        t = Teacher.objects.get(u = request.user)
-        r_count = t.rating_count
-        if r_count ==None:
-            r_count = 0
-        r_count +=1
-        t.rating_count = r_count
-        t.save()
-        return redirect('teacher_dashboard')
+        rate_code = get_object_or_404(RatingCode, code = code, u = u)
+        rt = Rating.objects.filter(code = rate_code, teacher = request.user)
+        if len(rt)>0:
+            edit_rating = Rating.objects.get(code = rate_code, teacher = request.user)
+            edit_rating.rating = rating
+            edit_rating.attention = attnt
+            edit_rating.performance = prfrm
+            edit_rating.punctuality = punct
+            edit_rating.cooperation = coop
+            edit_rating.save()
+            return redirect('teacher_dashboard')
+        else:
+            create_rating = Rating.objects.create(code = rate_code, teacher = request.user, rating = rating,
+            attention = attnt, performance = prfrm, punctuality = punct, cooperation = coop)
+            tt = Teacher.objects.get(u = request.user)
+            t_count = tt.rating_count
+            if t_count == None:
+                t_count = 0
+            t_count +=1
+            print("T_count",t_count)
+            tt.rating_count = t_count
+            tt.save()
+            return redirect('teacher_dashboard')
+    else:
+        return redirect('/')
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -427,9 +404,19 @@ def admin_student_code(request):
     if not request.user.is_superuser:
         return redirect('/')
     code = request.GET.get('code')
-    s = Search_Code.objects.get(code = code)
-    tchrz = s.accessed_by.all()
-    return render(request,'admin_student.html',{'tchrz':tchrz,'code':code})
+    s = SearchCode.objects.get(code = code)
+    searches = Search.objects.filter(code = s)
+    tchrz = []
+    for s in searches:
+        if s.accessed_by.username in tchrz:
+            pass
+        else:
+            tchrz.append(s.accessed_by.username)
+    tchrz_name = []
+    for t in tchrz:
+        u = User.objects.get(username = t)
+        tchrz_name.append(u.get_full_name())
 
-
+    print(tchrz_name)
+    return render(request,'admin_student.html',{'tchrz_name':tchrz_name,'code':code})
 

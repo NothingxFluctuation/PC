@@ -47,8 +47,10 @@
     <div class="jumbotron">
       <p><b>Teachers who accessed this code:</b></p>
       <br>
-      {% for t in tchrz %}
+      {% for t in tchrz_name %}
       <p>{{t}}</p>
+      {% empty %} 
+      <p>No body accessed it yet.</p>
       {% endfor %}
     </div>
     <!-- /.jumbotron -->

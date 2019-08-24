@@ -223,9 +223,11 @@
   </div>
       </div>
       <div class="card-footer text-muted">
-        Rated on {{r.rated}} by {{r.teacher}}
+        Rated on {{r.created}} by {{r.teacher}} with code {{r}}
       </div>
     </div>
+{% empty %}
+<p>No ratings to show.</p>
 
 {% endfor %}
 
