@@ -9,7 +9,7 @@ A website to allow teachers to rate performance of students across various param
 Install the dependencies and start the server.
 
 ```sh
-$ pip install django==1.8
+$ pip install django==2.2.6
 $ cd PC
 $ python manage.py runserver
 ```
